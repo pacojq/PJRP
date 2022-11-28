@@ -11,6 +11,7 @@ namespace PJRP.Runtime.Core
         private const string BUFFER_NAME = "[PJRP] Render Camera";
 
         private readonly CommandBuffer _buffer;
+        
         private readonly Lighting _lighting;
         
         public CameraRenderer()
@@ -26,6 +27,7 @@ namespace PJRP.Runtime.Core
         
         
         
+        private PJRenderPipeline _rp;
         private ScriptableRenderContext _context;
         private Camera _camera;
         
@@ -34,37 +36,50 @@ namespace PJRP.Runtime.Core
         
         public void Render(ScriptableRenderContext context, Camera camera, PJRenderPipeline rp)
         {
+            this._rp = rp;
             this._context = context;
             this._camera = camera;
 
             Editor_PrepareBuffer();
             Editor_PrepareForSceneWindow();
             
-            if (!Cull())
+            if (!Cull(rp.Shadows.MaxDistance))
                 return;
             
+            // == Prepare lights and render shadows ==========
+            
+            _buffer.BeginSample(SampleName);
+            {
+                ExecuteBuffer();
+                _lighting.Setup(context, _cullingResults, rp.Shadows);
+            }
+            _buffer.EndSample(SampleName);
+            
+            // == Render regular geometry ====================
             SetUp();
             {
-                _lighting.Setup(context, _cullingResults);
-                
                 DrawVisibleGeometry(rp.UseDynamicBatching, rp.UseGPUInstancing);
                 
                 Editor_DrawUnsupportedShaders();
                 Editor_DrawGizmos();
+            }
+            {
+                _lighting.Cleanup();
             }
             Submit();
         }
 
 
 
-        private bool Cull()
+        private bool Cull(float maxShadowDistance)
         {
-            if (!_camera.TryGetCullingParameters(out ScriptableCullingParameters cullParams))
-                return false;
-
-            _cullingResults = _context.Cull(ref cullParams);
-            
-            return true;
+            if (_camera.TryGetCullingParameters(out ScriptableCullingParameters cullParams))
+            {
+                cullParams.shadowDistance = Mathf.Min(maxShadowDistance, _camera.farClipPlane);
+                _cullingResults = _context.Cull(ref cullParams);
+                return true;
+            }
+            return false;
         }
         
         
@@ -82,7 +97,7 @@ namespace PJRP.Runtime.Core
                 );
             
             _buffer.BeginSample(SampleName);
-            ExecuteCommandBuffer();
+            ExecuteBuffer();
         }
         
         
@@ -125,7 +140,7 @@ namespace PJRP.Runtime.Core
         
         
         
-        private void ExecuteCommandBuffer()
+        private void ExecuteBuffer()
         {
             _context.ExecuteCommandBuffer(_buffer);
             _buffer.Clear();
@@ -134,7 +149,7 @@ namespace PJRP.Runtime.Core
         private void Submit()
         {
             _buffer.EndSample(SampleName);
-            ExecuteCommandBuffer();
+            ExecuteBuffer();
             _context.Submit();
         }
     }

@@ -35,4 +35,6 @@
 			ENDHLSL	
 		}
 	}
+	
+	CustomEditor "PJRP.Editor.PJRPShaderGUI"
 }

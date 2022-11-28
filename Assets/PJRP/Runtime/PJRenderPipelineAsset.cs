@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using PJRP.Runtime.Settings;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -12,6 +13,7 @@ namespace PJRP.Runtime
         [SerializeField] public bool UseGPUInstancing = true;
         [SerializeField] public bool UseSRPBatcher = true;
         
+        [SerializeField] public ShadowSettings Shadows = default;
         
         protected override RenderPipeline CreatePipeline()
         {

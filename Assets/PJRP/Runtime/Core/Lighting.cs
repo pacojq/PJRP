@@ -1,4 +1,5 @@
-﻿using Unity.Collections;
+﻿using PJRP.Runtime.Settings;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -18,6 +19,7 @@ namespace PJRP.Runtime.Core
 
         
         private readonly CommandBuffer _buffer;
+        private readonly Shadows _shadows;
 
         public Lighting()
         {
@@ -25,19 +27,24 @@ namespace PJRP.Runtime.Core
             {
                 name = BUFFER_NAME
             };
+            
+            _shadows = new Shadows();
         }
         
         
         private CullingResults _cullingResults;
 	
-        public void Setup(ScriptableRenderContext context, CullingResults cullingResults)
+        public void Setup(ScriptableRenderContext context, CullingResults cullingResults, ShadowSettings shadowSettings)
         {
             _cullingResults = cullingResults;
             
             _buffer.BeginSample(BUFFER_NAME);
-            
-            SetupLights();
-            
+            {
+                _shadows.Setup(context, _cullingResults, shadowSettings);
+                SetupLights();
+
+                _shadows.Render();
+            }
             _buffer.EndSample(BUFFER_NAME);
             context.ExecuteCommandBuffer(_buffer);
             _buffer.Clear();
@@ -73,6 +80,13 @@ namespace PJRP.Runtime.Core
         {
             s_DirLightColors[index] = visibleLight.finalColor;
             s_DirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2); // Equivalent to: -lightTransform.forward
+            
+            _shadows.ReserveDirectionalShadows(visibleLight.light, index);
+        }
+        
+        public void Cleanup() 
+        {
+            _shadows.Cleanup();
         }
     }
 }

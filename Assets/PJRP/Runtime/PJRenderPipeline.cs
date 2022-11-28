@@ -1,4 +1,5 @@
 ﻿using PJRP.Runtime.Core;
+using PJRP.Runtime.Settings;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -11,6 +12,9 @@ namespace PJRP.Runtime
         
         public bool UseGPUInstancing => _useGPUInstancing;
         private readonly bool _useGPUInstancing;
+
+        public ShadowSettings Shadows => _shadows;
+        private readonly ShadowSettings _shadows;
         
         
         private readonly PJRenderPipelineAsset _asset;
@@ -25,6 +29,8 @@ namespace PJRP.Runtime
             this._useDynamicBatching = asset.UseDynamicBatching;
             this._useGPUInstancing = asset.UseGPUInstancing;
             GraphicsSettings.useScriptableRenderPipelineBatching = asset.UseSRPBatcher;
+
+            this._shadows = asset.Shadows;
         }
         
         
