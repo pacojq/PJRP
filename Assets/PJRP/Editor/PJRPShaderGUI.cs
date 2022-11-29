@@ -36,6 +36,23 @@ namespace PJRP.Editor
             set => SetRenderQueue(value);
         }
         
+        enum ShadowMode 
+        {
+            On, Clip, Dither, Off
+        }
+
+        ShadowMode Shadows 
+        {
+            set 
+            {
+                if (SetProperty("_Shadows", (float)value)) 
+                {
+                    SetKeyword("_SHADOWS_CLIP", value == ShadowMode.Clip);
+                    SetKeyword("_SHADOWS_DITHER", value == ShadowMode.Dither);
+                }
+            }
+        }
+        
         private bool HasPremultiplyAlpha => HasProperty("_PremulAlpha");
         
         
@@ -44,6 +61,8 @@ namespace PJRP.Editor
 
         protected override void OnMaterialGUI()
         {
+            EditorGUI.BeginChangeCheck();
+            
             _showPresets = EditorGUILayout.Foldout(_showPresets, "Presets", true);
             if (_showPresets)
             {
@@ -52,7 +71,16 @@ namespace PJRP.Editor
                 FadePreset();
                 TransparentPreset();
             }
+            
+            if (EditorGUI.EndChangeCheck())
+                SetShadowCasterPass();
         }
+        
+        protected override void OnBaseMaterialGUIChangeCheck()
+        {
+            SetShadowCasterPass();
+        }
+        
 
 
         private void OpaquePreset()
@@ -65,6 +93,7 @@ namespace PJRP.Editor
                 DstBlend = BlendMode.Zero;
                 ZWrite = true;
                 RenderQueue = RenderQueue.Geometry;
+                Shadows = ShadowMode.On;
             }
         }
         
@@ -78,6 +107,7 @@ namespace PJRP.Editor
                 DstBlend = BlendMode.Zero;
                 ZWrite = true;
                 RenderQueue = RenderQueue.AlphaTest;
+                Shadows = ShadowMode.Clip;
             }
         }
         
@@ -91,6 +121,7 @@ namespace PJRP.Editor
                 DstBlend = BlendMode.OneMinusSrcAlpha;
                 ZWrite = false;
                 RenderQueue = RenderQueue.Transparent;
+                Shadows = ShadowMode.Dither;
             }
         }
         
@@ -104,7 +135,18 @@ namespace PJRP.Editor
                 DstBlend = BlendMode.OneMinusSrcAlpha;
                 ZWrite = false;
                 RenderQueue = RenderQueue.Transparent;
+                Shadows = ShadowMode.Dither;
             }
+        }
+        
+        private void SetShadowCasterPass()
+        {
+            MaterialProperty shadows = FindProperty("_Shadows");
+            if (shadows == null || shadows.hasMixedValue)
+                return;
+            
+            bool enabled = shadows.floatValue < (float)ShadowMode.Off;
+            SetShaderPassEnabled("ShadowCaster", enabled);
         }
     }
 }

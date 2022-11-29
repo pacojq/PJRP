@@ -10,10 +10,12 @@ namespace PJRP.Runtime.Core
         private static readonly int s_Id_DirectionalLightCount = Shader.PropertyToID("_DirectionalLightCount");
         private static readonly int s_Id_DirectionalLightColors = Shader.PropertyToID("_DirectionalLightColors");
         private static readonly int s_Id_DirectionalLightDirections = Shader.PropertyToID("_DirectionalLightDirections");
+        private static readonly int s_Id_DirectionalLightShadowData = Shader.PropertyToID("_DirectionalLightShadowData");
         
         private const int MAX_DIR_LIGHT_COUNT = 4;
         private static readonly Vector4[] s_DirLightColors = new Vector4[MAX_DIR_LIGHT_COUNT];
         private static readonly Vector4[] s_DirLightDirections = new Vector4[MAX_DIR_LIGHT_COUNT];
+        private static readonly Vector4[] s_DirLightShadowData = new Vector4[MAX_DIR_LIGHT_COUNT];
         
         private const string BUFFER_NAME = "Lighting";
 
@@ -72,6 +74,7 @@ namespace PJRP.Runtime.Core
             _buffer.SetGlobalInt(s_Id_DirectionalLightCount, visibleLights.Length);
             _buffer.SetGlobalVectorArray(s_Id_DirectionalLightColors, s_DirLightColors);
             _buffer.SetGlobalVectorArray(s_Id_DirectionalLightDirections, s_DirLightDirections);
+            _buffer.SetGlobalVectorArray(s_Id_DirectionalLightShadowData, s_DirLightShadowData);
         }
         
         
@@ -81,7 +84,8 @@ namespace PJRP.Runtime.Core
             s_DirLightColors[index] = visibleLight.finalColor;
             s_DirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2); // Equivalent to: -lightTransform.forward
             
-            _shadows.ReserveDirectionalShadows(visibleLight.light, index);
+            _shadows.ReserveDirectionalShadows(visibleLight.light, index, out Vector3 shadowData);
+            s_DirLightShadowData[index] = shadowData;
         }
         
         public void Cleanup() 

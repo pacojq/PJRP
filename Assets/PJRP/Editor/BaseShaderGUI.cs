@@ -13,17 +13,26 @@ namespace PJRP.Editor
         
         public sealed override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
         {
+            EditorGUI.BeginChangeCheck();
+            
             base.OnGUI(materialEditor, properties);
             
             _editor = materialEditor;
             _materials = materialEditor.targets;
             _properties = properties;
 
+            if (EditorGUI.EndChangeCheck())
+                OnBaseMaterialGUIChangeCheck();
+
             EditorGUILayout.Space();
             
             OnMaterialGUI();
         }
 
+        protected virtual void OnBaseMaterialGUIChangeCheck()
+        {
+        }
+        
         protected abstract void OnMaterialGUI();
         
         
@@ -36,6 +45,12 @@ namespace PJRP.Editor
                 Material m = (Material) _materials[i];
                 m.renderQueue = (int) queue;
             }
+        }
+        
+
+        protected MaterialProperty FindProperty(string name, bool propertyIsMandatory = false)
+        {
+            return FindProperty("_Shadows", _properties, propertyIsMandatory);
         }
 
         protected bool HasProperty(string name)
@@ -60,6 +75,8 @@ namespace PJRP.Editor
                 SetKeyword(keyword, value);
         }
         
+        
+        
         protected void SetKeyword(string keyword, bool enabled)
         {
             if (enabled)
@@ -77,6 +94,16 @@ namespace PJRP.Editor
                     Material m = (Material) _materials[i];
                     m.DisableKeyword(keyword);
                 }
+            }
+        }
+        
+        
+        protected void SetShaderPassEnabled(string passName, bool enabled)
+        {
+            for (int i = 0; i < _materials.Length; i++)
+            {
+                Material m = (Material) _materials[i];
+                m.SetShaderPassEnabled(passName, enabled);
             }
         }
         

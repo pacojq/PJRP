@@ -15,3 +15,15 @@ MonoBehaviour:
   UseDynamicBatching: 1
   UseGPUInstancing: 1
   UseSRPBatcher: 0
+  Shadows:
+    MaxDistance: 100
+    DistanceFade: 0.1
+    Directional:
+      AtlasSize: 4096
+      Filter: 2
+      CascadeCount: 4
+      CascadeRatio1: 0.1
+      CascadeRatio2: 0.25
+      CascadeRatio3: 0.5
+      CascadeFade: 0.001
+      CascadeBlend: 2
