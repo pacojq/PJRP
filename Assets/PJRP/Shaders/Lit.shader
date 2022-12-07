@@ -22,6 +22,11 @@
 	}
 	SubShader
 	{
+		HLSLINCLUDE
+		#include "../ShaderLibrary/Common.hlsl"
+		#include "LitInput.hlsl"
+		ENDHLSL
+		
 		Pass
 		{
 			Tags
@@ -38,7 +43,8 @@
 			#pragma shader_feature _CLIPPING
 			#pragma shader_feature _RECEIVE_SHADOWS
 			#pragma shader_feature _PREMULTIPLY_ALPHA
-			
+
+			#pragma multi_compile _ LIGHTMAP_ON
 			#pragma multi_compile_instancing
 			
 			
@@ -74,6 +80,26 @@
 			#pragma fragment ShadowCasterPassFragment
 			
 			#include "ShadowCasterPass.hlsl"
+			ENDHLSL
+		}
+		
+		Pass 
+		{
+			Tags 
+			{
+				"LightMode" = "Meta"
+			}
+
+			Cull Off
+
+			HLSLPROGRAM
+			#pragma target 3.5
+			
+			#pragma vertex MetaPassVertex
+			#pragma fragment MetaPassFragment
+			
+			#include "MetaPass.hlsl"
+			
 			ENDHLSL
 		}
 	}
