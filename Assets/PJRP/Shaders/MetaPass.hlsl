@@ -59,6 +59,12 @@ float4 MetaPassFragment (Varyings input) : SV_TARGET
 
         meta.rgb = min(PositivePow(meta.rgb, unity_OneOverOutputBoost), unity_MaxOutputValue);
     }
+
+    else if (unity_MetaFragmentControl.y) // Emissive light is requested
+    {
+        meta = float4(GetEmission(input.baseUV), 1.0);
+    }
+    
     return meta;
 }
 

@@ -23,6 +23,10 @@ namespace PJRP.Editor
 
             if (EditorGUI.EndChangeCheck())
                 OnBaseMaterialGUIChangeCheck();
+            
+            EditorGUILayout.Space();
+            
+            BakedEmission();
 
             EditorGUILayout.Space();
             
@@ -37,6 +41,23 @@ namespace PJRP.Editor
         
         
         
+        private void BakedEmission() 
+        {
+            EditorGUI.BeginChangeCheck();
+            
+            // Explicitly enable this option so emissive materials can bake light
+            _editor.LightmapEmissionProperty();
+            
+            if (EditorGUI.EndChangeCheck())
+            {
+                for (int i = 0; i < _editor.targets.Length; i++)
+                {
+                    Material m = (Material) _editor.targets[i];
+                    m.globalIlluminationFlags &= ~MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+                }
+            }
+        }
+        
 
         protected void SetRenderQueue(RenderQueue queue)
         {
@@ -50,7 +71,7 @@ namespace PJRP.Editor
 
         protected MaterialProperty FindProperty(string name, bool propertyIsMandatory = false)
         {
-            return FindProperty("_Shadows", _properties, propertyIsMandatory);
+            return FindProperty(name, _properties, propertyIsMandatory);
         }
 
         protected bool HasProperty(string name)

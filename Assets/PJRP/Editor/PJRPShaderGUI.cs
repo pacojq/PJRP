@@ -71,14 +71,18 @@ namespace PJRP.Editor
                 FadePreset();
                 TransparentPreset();
             }
-            
+
             if (EditorGUI.EndChangeCheck())
+            {
                 SetShadowCasterPass();
+                CopyLightMappingProperties();
+            }
         }
         
         protected override void OnBaseMaterialGUIChangeCheck()
         {
             SetShadowCasterPass();
+            CopyLightMappingProperties();
         }
         
 
@@ -147,6 +151,28 @@ namespace PJRP.Editor
             
             bool enabled = shadows.floatValue < (float)ShadowMode.Off;
             SetShaderPassEnabled("ShadowCaster", enabled);
+        }
+        
+        /// <summary>
+        /// Unity has a hardcoded approach for baked transparency, looking at
+        /// "_MainTex" and "_Color" material properties, and using "_Cutoff"
+        /// for alpha clipping.
+        /// </summary>
+        private void CopyLightMappingProperties()
+        {
+            MaterialProperty mainTex = FindProperty("_MainTex");
+            MaterialProperty baseMap = FindProperty("_BaseMap");
+            if (mainTex != null && baseMap != null)
+            {
+                mainTex.textureValue = baseMap.textureValue;
+                mainTex.textureScaleAndOffset = baseMap.textureScaleAndOffset;
+            }
+            MaterialProperty color = FindProperty("_Color");
+            MaterialProperty baseColor = FindProperty("_BaseColor");
+            if (color != null && baseColor != null)
+            {
+                color.colorValue = baseColor.colorValue;
+            }
         }
     }
 }
