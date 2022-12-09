@@ -84,7 +84,7 @@ namespace PJRP.Runtime.Core
             s_DirLightColors[index] = visibleLight.finalColor;
             s_DirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2); // Equivalent to: -lightTransform.forward
             
-            _shadows.ReserveDirectionalShadows(visibleLight.light, index, out Vector3 shadowData);
+            _shadows.ReserveDirectionalShadows(visibleLight.light, index, out Vector4 shadowData);
             s_DirLightShadowData[index] = shadowData;
         }
         

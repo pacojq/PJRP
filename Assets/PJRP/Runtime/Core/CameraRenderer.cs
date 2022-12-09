@@ -114,6 +114,9 @@ namespace PJRP.Runtime.Core
                 perObjectData = PerObjectData.Lightmaps
                               | PerObjectData.LightProbe
                               | PerObjectData.LightProbeProxyVolume
+                              | PerObjectData.ShadowMask
+                              | PerObjectData.OcclusionProbe
+                              | PerObjectData.OcclusionProbeProxyVolume
             };
             drawingSettings.SetShaderPassName(1, s_ShaderTag_Lit);
             

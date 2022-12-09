@@ -33,6 +33,14 @@ namespace PJRP.Runtime.Core
             "_CASCADE_BLEND_DITHER"
         };
         
+        private static readonly string[] KEYWORDS_SHADOWMASK = new string[]
+        {
+            "_SHADOW_MASK_ALWAYS",
+            "_SHADOW_MASK_DISTANCE"
+        };
+        
+        
+        
         private static readonly Vector4[] s_CascadeCullingSpheres  = new Vector4[MAX_CASCADES];
         private static readonly Vector4[] s_CascadeData  = new Vector4[MAX_CASCADES];
         private static readonly Matrix4x4[] s_DirShadowMatrices = new Matrix4x4[MAX_SHADOWED_DIRECTIONAL_LIGHT_COUNT * MAX_CASCADES];
@@ -67,6 +75,7 @@ namespace PJRP.Runtime.Core
         private ShadowSettings _settings;
 
         private int _shadowedDirectionalLightCount;
+        private bool _useShadowMask;
         
         public void Setup(ScriptableRenderContext context, CullingResults cullingResults, ShadowSettings settings)
         {
@@ -75,6 +84,7 @@ namespace PJRP.Runtime.Core
             this._settings = settings;
 
             _shadowedDirectionalLightCount = 0;
+            _useShadowMask = false;
         }
         
         
@@ -89,6 +99,18 @@ namespace PJRP.Runtime.Core
                 // Use a dummy 1x1 texture when no directional shadows are needed
                 _buffer.GetTemporaryRT(s_Id_DirectionalShadowAtlas, 1, 1,
                         32, FilterMode.Bilinear, RenderTextureFormat.Shadowmap);
+            }
+            
+            // Enable / Disable shadowmask
+            {
+                _buffer.BeginSample(BUFFER_NAME);
+                
+                int shadowmaskIndex = -1;
+                if (_useShadowMask) shadowmaskIndex = (QualitySettings.shadowmaskMode == ShadowmaskMode.Shadowmask) ? 0 : 1;
+                
+                SetKeywords(KEYWORDS_SHADOWMASK, shadowmaskIndex);
+                _buffer.EndSample(BUFFER_NAME);
+                ExecuteBuffer();
             }
         }
 
@@ -291,28 +313,49 @@ namespace PJRP.Runtime.Core
         /// </summary>
         /// <param name="light"></param>
         /// <param name="visibleLightIndex"></param>
-        /// <param name="shadowData">Packed: shadow strength (x component), shadow tile offset (y comp.) and shadow normal bias (z comp.).</param>
-        public void ReserveDirectionalShadows(Light light, int visibleLightIndex, out Vector3 shadowData)
+        /// <param name="shadowData">Packed: shadow strength (x component), shadow tile offset (y comp.),
+        /// shadow normal bias (z comp.), and light's mask channel index (w comp.).
+        /// </param>
+        public void ReserveDirectionalShadows(Light light, int visibleLightIndex, out Vector4 shadowData)
         {
             if (_shadowedDirectionalLightCount < MAX_SHADOWED_DIRECTIONAL_LIGHT_COUNT
-                    && light.shadows != LightShadows.None && light.shadowStrength > 0f
-                    && _cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
+                    && light.shadows != LightShadows.None && light.shadowStrength > 0f)
             {
+                float maskChannel = -1;
+                
+                // ==== Check if shadow mask is needed ============
+                
+                LightBakingOutput lightBaking = light.bakingOutput;
+                if (lightBaking.lightmapBakeType == LightmapBakeType.Mixed && lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask) 
+                {
+                    _useShadowMask = true;
+                    maskChannel = lightBaking.occlusionMaskChannel;
+                }
+                
+                if (!_cullingResults.GetShadowCasterBounds(visibleLightIndex, out Bounds b))
+                {
+                    shadowData = new Vector4(-light.shadowStrength, 0f, 0f, maskChannel);
+                    return;
+                }
+
+                // ==== Actually reserve space =====================
+                
                 _shadowedDirectionalLights[_shadowedDirectionalLightCount] = new ShadowedDirectionalLight() 
                 {
                     VisibleLightIndex = visibleLightIndex,
                     SlopeScaleBias = light.shadowBias,
                     NearPlaneOffset = light.shadowNearPlane
                 };
-                shadowData = new Vector3(
+                shadowData = new Vector4(
                     light.shadowStrength, 
                     _settings.Directional.CascadeCount * _shadowedDirectionalLightCount++,
-                    light.shadowNormalBias
+                    light.shadowNormalBias,
+                    maskChannel
                 );
                 return;
             }
             
-            shadowData = Vector3.zero;
+            shadowData = new Vector4(0f, 0f, 0f, -1f);
         }
         
         

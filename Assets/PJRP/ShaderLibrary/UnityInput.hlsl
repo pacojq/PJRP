@@ -33,6 +33,9 @@ CBUFFER_START(UnityPerDraw)
     float4 unity_ProbeVolumeSizeInv;
     float4 unity_ProbeVolumeMin;
 
+    // Occlusion probes, so shadow mask works on dynamic objects
+    float4 unity_ProbesOcclusion;
+
     // ^^== LIGHTMAPING =================^^
 
 CBUFFER_END
