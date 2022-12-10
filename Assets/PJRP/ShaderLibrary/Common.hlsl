@@ -35,4 +35,18 @@ inline float DistanceSquared(float3 pA, float3 pB)
 	return dot(pA - pB, pA - pB);
 }
 
+
+/*
+    When LOD Groups are marked to transition objects using Cross Fade,
+    we will clip certain pixels of both the higher and lower LOD objects,
+    so we can smoothly transition from one to the other.
+*/
+void ClipLOD (float2 positionCS, float fade)
+{
+#if defined(LOD_FADE_CROSSFADE)
+    float dither = InterleavedGradientNoise(positionCS.xy, 0);
+    clip(fade + (fade < 0.0 ? dither : -dither)); // Fade will be negative for the upcoming object
+#endif
+}
+
 #endif
