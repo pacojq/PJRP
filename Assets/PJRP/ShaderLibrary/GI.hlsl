@@ -2,6 +2,7 @@
 #define PJRP_GI_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/EntityLighting.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/ImageBasedLighting.hlsl"
 
 
 #if defined(LIGHTMAP_ON)
@@ -30,16 +31,32 @@ SAMPLER(samplerunity_ShadowMask);
 TEXTURE3D_FLOAT(unity_ProbeVolumeSH);
 SAMPLER(samplerunity_ProbeVolumeSH);
 
+TEXTURECUBE(unity_SpecCube0);
+SAMPLER(samplerunity_SpecCube0);
+
 
 struct GI
 {
     float3 diffuse;
+	float3 specular;
 	ShadowMask shadowMask;
 };
 
 
 
-float3 SampleLightProbe (Surface surfaceWS)
+
+float3 SampleEnvironment(Surface surfaceWS, BRDF brdf)
+{
+    float3 uvw = reflect(-surfaceWS.viewDirection, surfaceWS.normal);
+	float mip = PerceptualRoughnessToMipmapLevel(brdf.perceptualRoughness); // Unity Core RP function
+    
+    float4 environment = SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, uvw, mip);
+    return DecodeHDREnvironment(environment, unity_SpecCube0_HDR); // Unity Core RP function
+}
+
+
+
+float3 SampleLightProbe(Surface surfaceWS)
 {
 #if defined(LIGHTMAP_ON)
     return 0.0;
@@ -52,7 +69,7 @@ float3 SampleLightProbe (Surface surfaceWS)
             unity_ProbeVolumeWorldToObject,
             unity_ProbeVolumeParams.y, unity_ProbeVolumeParams.z,
             unity_ProbeVolumeMin.xyz, unity_ProbeVolumeSizeInv.xyz
-        );
+        ); // Unity Core RP function
     }
     else
     {
@@ -64,7 +81,7 @@ float3 SampleLightProbe (Surface surfaceWS)
         coefficients[4] = unity_SHBg;
         coefficients[5] = unity_SHBb;
         coefficients[6] = unity_SHC;
-        return max(0.0, SampleSH9(coefficients, surfaceWS.normal));
+        return max(0.0, SampleSH9(coefficients, surfaceWS.normal)); // Unity Core RP function
     }
 #endif
 }
@@ -86,7 +103,7 @@ float3 SampleLightMap(float2 lightMapUV)
             float4(1.0, 1.0, 0.0, 0.0),
             encodedLightmap,
             float4(LIGHTMAP_HDR_MULTIPLIER, LIGHTMAP_HDR_EXPONENT, 0.0, 0.0)
-        );
+        ); // Unity Core RP function
     
 #else
     return 0.0;
@@ -106,7 +123,7 @@ float4 SampleBakedShadows(float2 lightMapUV, Surface surfaceWS)
             surfaceWS.position, unity_ProbeVolumeWorldToObject,
             unity_ProbeVolumeParams.y, unity_ProbeVolumeParams.z,
             unity_ProbeVolumeMin.xyz, unity_ProbeVolumeSizeInv.xyz
-        );
+        ); // Unity Core RP function
     }
     else
     {
@@ -117,11 +134,13 @@ float4 SampleBakedShadows(float2 lightMapUV, Surface surfaceWS)
 
 
 
-GI GetGI(float2 lightMapUV, Surface surfaceWS)
+GI GetGI(float2 lightMapUV, Surface surfaceWS, BRDF brdf)
 {
     GI gi;
     
     gi.diffuse = SampleLightMap(lightMapUV) + SampleLightProbe(surfaceWS);
+    
+    gi.specular = SampleEnvironment(surfaceWS, brdf);
 
     gi.shadowMask.always = false;
     gi.shadowMask.distance = false;

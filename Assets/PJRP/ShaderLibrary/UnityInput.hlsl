@@ -36,6 +36,9 @@ CBUFFER_START(UnityPerDraw)
     // Occlusion probes, so shadow mask works on dynamic objects
     float4 unity_ProbesOcclusion;
 
+    // Reflection probes' cubemap
+    float4 unity_SpecCube0_HDR;
+
     // ^^== LIGHTMAPING =================^^
 
 CBUFFER_END

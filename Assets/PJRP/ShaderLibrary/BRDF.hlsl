@@ -6,6 +6,8 @@ struct BRDF
     float3 diffuse;
     float3 specular;
     float roughness;
+    float perceptualRoughness;
+    float fresnel;
 };
 
 
@@ -57,9 +59,11 @@ BRDF GetBRDF(inout Surface surface, bool applyAlphaToDiffuse = false)
     
     brdf.specular = lerp(MIN_REFLECTIVITY, surface.color, surface.metallic);
     
-    const float perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness); // Unity Core RP function
-    brdf.roughness = PerceptualRoughnessToRoughness(perceptualRoughness); // Unity Core RP function
+    brdf.perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(surface.smoothness); // Unity Core RP function
+    brdf.roughness = PerceptualRoughnessToRoughness(brdf.perceptualRoughness); // Unity Core RP function
 
+    brdf.fresnel = saturate(surface.smoothness + 1.0 - oneMinusReflectivity);
+    
     return brdf;
 }
 
@@ -67,6 +71,17 @@ BRDF GetBRDF(inout Surface surface, bool applyAlphaToDiffuse = false)
 float3 DirectBRDF(Surface surface, BRDF brdf, Light light)
 {
     return SpecularStrength(surface, brdf, light) * brdf.specular + brdf.diffuse;
+}
+
+
+float3 IndirectBRDF(Surface surface, BRDF brdf, float3 diffuse, float3 specular)
+{
+    float fresnelStrength = surface.fresnelStrength * Pow4(1.0 - saturate(dot(surface.normal, surface.viewDirection)));
+    
+    float3 reflection = specular * lerp(brdf.specular, brdf.fresnel, fresnelStrength);
+	reflection /= brdf.roughness * brdf.roughness + 1.0; // Roughness scatters reflections
+    
+    return diffuse * brdf.diffuse + reflection;
 }
 
 #endif

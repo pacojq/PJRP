@@ -41,7 +41,7 @@ inline float DistanceSquared(float3 pA, float3 pB)
     we will clip certain pixels of both the higher and lower LOD objects,
     so we can smoothly transition from one to the other.
 */
-void ClipLOD (float2 positionCS, float fade)
+void ClipLOD(float2 positionCS, float fade)
 {
 #if defined(LOD_FADE_CROSSFADE)
     float dither = InterleavedGradientNoise(positionCS.xy, 0);

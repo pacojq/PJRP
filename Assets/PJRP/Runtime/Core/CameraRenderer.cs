@@ -117,6 +117,7 @@ namespace PJRP.Runtime.Core
                               | PerObjectData.ShadowMask
                               | PerObjectData.OcclusionProbe
                               | PerObjectData.OcclusionProbeProxyVolume
+                              | PerObjectData.ReflectionProbes
             };
             drawingSettings.SetShaderPassName(1, s_ShaderTag_Lit);
             
