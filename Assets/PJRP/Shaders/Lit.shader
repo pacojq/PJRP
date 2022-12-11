@@ -10,6 +10,7 @@
 		
 		/// Combined mask with Metallic, Occlusion, Detail, and Smoothness data,
 		/// stored in channels RGBA respectively.
+		[Toggle(_MASK_MAP)] _MaskMapToggle ("Mask Map", Float) = 0
 		[NoScaleOffset] _MaskMap("Mask (MODS)", 2D) = "white" {}
 		
 		_Metallic ("Metallic", Range(0, 1)) = 0
@@ -27,6 +28,7 @@
 		
 		/// We can add finer detail to objects when looked up close. Will be controlled
 		/// by the Blue channel in _MaskMap.
+		[Toggle(_DETAIL_MAP)] _DetailMapToggle ("Detail Maps", Float) = 0
 		_DetailMap("Details", 2D) = "linearGrey" {}
 		[NoScaleOffset] _DetailNormalMap("Detail Normals", 2D) = "bump" {}
 		_DetailAlbedo("Detail Albedo", Range(0, 1)) = 1
@@ -70,9 +72,13 @@
 			#pragma target 3.5
 
 			#pragma shader_feature _CLIPPING
+			
 			#pragma shader_feature _RECEIVE_SHADOWS
 			#pragma shader_feature _PREMULTIPLY_ALPHA
+			
 			#pragma shader_feature _NORMAL_MAP
+			#pragma shader_feature _MASK_MAP
+			#pragma shader_feature _DETAIL_MAP
 
 			#pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
 			#pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
@@ -101,6 +107,7 @@
 
             // Disable writing color, as we only need depth
 			ColorMask 0
+			Cull [_Cull]
 
 			HLSLPROGRAM
 			#pragma target 3.5

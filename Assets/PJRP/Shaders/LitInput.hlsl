@@ -1,7 +1,6 @@
 ﻿#ifndef PJRP_LIT_INPUT_INCLUDED
 #define PJRP_LIT_INPUT_INCLUDED
 
-
 #define INPUT_PROP(name) UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, name)
 
 
@@ -49,9 +48,33 @@ UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 
 
-inline float4 GetMask(float2 baseUV)
+
+struct InputConfig
 {
-    return SAMPLE_TEXTURE2D(_MaskMap, sampler_BaseMap, baseUV);
+    float2 baseUV;
+    float2 detailUV;
+	bool useMask;
+    bool useDetail;
+};
+
+InputConfig GetInputConfig(float2 baseUV, float2 detailUV = 0.0)
+{
+    InputConfig c;
+    c.baseUV = baseUV;
+    c.detailUV = detailUV;
+    c.useMask = false;
+    c.useDetail = false;
+    return c;
+}
+
+
+
+
+
+inline float4 GetMask(InputConfig c)
+{
+    if (c.useMask) return SAMPLE_TEXTURE2D(_MaskMap, sampler_BaseMap, c.baseUV);
+    return 1.0f;
 }
 
 inline float2 TransformDetailUV(float2 detailUV)
@@ -60,10 +83,14 @@ inline float2 TransformDetailUV(float2 detailUV)
     return detailUV * detailST.xy + detailST.zw;
 }
 
-inline float4 GetDetail(float2 detailUV)
+inline float4 GetDetail(InputConfig c)
 {
-    const float4 map = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, detailUV);
-    return map * 2.0 - 1.0;
+    if (c.useDetail)
+    {
+        const float4 map = SAMPLE_TEXTURE2D(_DetailMap, sampler_DetailMap, c.detailUV);
+        return map * 2.0 - 1.0;
+    }
+    return 0.0f;
 }
 
 inline float2 TransformBaseUV(float2 baseUV)
@@ -72,73 +99,82 @@ inline float2 TransformBaseUV(float2 baseUV)
     return baseUV * baseST.xy + baseST.zw;
 }
 
-inline float4 GetBase(float2 baseUV, float2 detailUV = 0.0)
+inline float4 GetBase(InputConfig c)
 {
-    float4 map = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, baseUV);
+    float4 map = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, c.baseUV);
     float4 color = INPUT_PROP(_BaseColor);
 
-    float mask = GetMask(baseUV).b;
-    float detail = GetDetail(detailUV).r * INPUT_PROP(_DetailAlbedo);
-    map.rgb = lerp(sqrt(map.rgb), detail < 0.0 ? 0.0 : 1.0, abs(detail) * mask);
-	map.rgb *= map.rgb;
+    if (c.useDetail)
+    {
+        float mask = GetMask(c).b;
+        float detail = GetDetail(c).r * INPUT_PROP(_DetailAlbedo);
+        map.rgb = lerp(sqrt(map.rgb), detail < 0.0 ? 0.0 : 1.0, abs(detail) * mask);
+        map.rgb *= map.rgb;
+    }
     
     return map * color;
 }
 
-inline float GetCutoff(float2 baseUV)
+inline float GetCutoff(InputConfig c)
 {
     return INPUT_PROP(_Cutoff);
 }
 
-inline float GetMetallic(float2 baseUV)
+inline float GetMetallic(InputConfig c)
 {
     float metallic = INPUT_PROP(_Metallic);
-    metallic *= GetMask(baseUV).r;
+    metallic *= GetMask(c).r;
     return metallic;
 }
 
-inline float GetSmoothness(float2 baseUV, float2 detailUV = 0.0)
+inline float GetSmoothness(InputConfig c)
 {
     float smoothness = INPUT_PROP(_Smoothness);
-    smoothness *= GetMask(baseUV).a;
+    smoothness *= GetMask(c).a;
 
-    float detail = GetDetail(detailUV).b * INPUT_PROP(_DetailSmoothness);
-    float mask = GetMask(baseUV).b;
-    smoothness = lerp(smoothness, detail < 0.0 ? 0.0 : 1.0, abs(detail) * mask);
+    if (c.useDetail)
+    {
+        float detail = GetDetail(c).b * INPUT_PROP(_DetailSmoothness);
+        float mask = GetMask(c).b;
+        smoothness = lerp(smoothness, detail < 0.0 ? 0.0 : 1.0, abs(detail) * mask);
+    }
     
     return smoothness;
 }
 
-inline float GetFresnel(float2 baseUV)
+inline float GetFresnel(InputConfig c)
 {
     return INPUT_PROP(_Fresnel);
 }
 
-inline float3 GetNormalTS(float2 baseUV, float2 detailUV = 0.0)
+inline float3 GetNormalTS(InputConfig c)
 {
-    float4 map = SAMPLE_TEXTURE2D(_NormalMap, sampler_BaseMap, baseUV);
+    float4 map = SAMPLE_TEXTURE2D(_NormalMap, sampler_BaseMap, c.baseUV);
     float scale = INPUT_PROP(_NormalScale);
     float3 normal = DecodeNormal(map, scale);
 
-    map = SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailMap, detailUV);
-    scale = INPUT_PROP(_DetailNormalScale) * GetMask(baseUV).b;
-    float3 detail = DecodeNormal(map, scale);
-    normal = BlendNormalRNM(normal, detail);
+    if (c.useDetail)
+    {
+        map = SAMPLE_TEXTURE2D(_DetailNormalMap, sampler_DetailMap, c.detailUV);
+        scale = INPUT_PROP(_DetailNormalScale) * GetMask(c).b;
+        float3 detail = DecodeNormal(map, scale);
+        normal = BlendNormalRNM(normal, detail);
+    }
     
     return normal;
 }
 
-inline float3 GetEmission(float2 baseUV)
+inline float3 GetEmission(InputConfig c)
 {
-    float4 map = SAMPLE_TEXTURE2D(_EmissionMap, sampler_BaseMap, baseUV);
+    float4 map = SAMPLE_TEXTURE2D(_EmissionMap, sampler_BaseMap, c.baseUV);
     float4 color = INPUT_PROP(_EmissionColor);
     return map.rgb * color.rgb;
 }
 
-inline float GetOcclusion(float2 baseUV)
+inline float GetOcclusion(InputConfig c)
 {
     const float strength = INPUT_PROP(_Occlusion);
-    float occlusion = GetMask(baseUV).g;
+    float occlusion = GetMask(c).g;
     occlusion = lerp(occlusion, 1.0, strength);
     return occlusion;
 }
