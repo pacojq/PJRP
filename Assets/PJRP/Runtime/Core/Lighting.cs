@@ -12,10 +12,21 @@ namespace PJRP.Runtime.Core
         private static readonly int s_Id_DirectionalLightDirections = Shader.PropertyToID("_DirectionalLightDirections");
         private static readonly int s_Id_DirectionalLightShadowData = Shader.PropertyToID("_DirectionalLightShadowData");
         
+        private static readonly int s_Id_OtherLightCount = Shader.PropertyToID("_OtherLightCount");
+        private static readonly int s_Id_OtherLightColors = Shader.PropertyToID("_OtherLightColors");
+        private static readonly int s_Id_OtherLightPositions = Shader.PropertyToID("_OtherLightPositions");
+        
         private const int MAX_DIR_LIGHT_COUNT = 4;
         private static readonly Vector4[] s_DirLightColors = new Vector4[MAX_DIR_LIGHT_COUNT];
         private static readonly Vector4[] s_DirLightDirections = new Vector4[MAX_DIR_LIGHT_COUNT];
         private static readonly Vector4[] s_DirLightShadowData = new Vector4[MAX_DIR_LIGHT_COUNT];
+        
+        private const int MAX_OTHER_LIGHT_COUNT = 64;
+        private static readonly Vector4[] s_OtherLightColors = new Vector4[MAX_OTHER_LIGHT_COUNT];
+        private static readonly Vector4[] s_OtherLightPositions = new Vector4[MAX_OTHER_LIGHT_COUNT];
+        
+        
+        
         
         private const string BUFFER_NAME = "Lighting";
 
@@ -59,22 +70,43 @@ namespace PJRP.Runtime.Core
             NativeArray<VisibleLight> visibleLights = _cullingResults.visibleLights;
             
             int dirLightCount = 0;
+            int otherLightCount = 0;
+            
             for (int i = 0; i < visibleLights.Length; i++)
             {
                 VisibleLight visibleLight = visibleLights[i];
 
-                if (visibleLight.lightType == LightType.Directional)
+                switch (visibleLight.lightType)
                 {
-                    SetupDirectionalLight(dirLightCount++, ref visibleLight);
-                    if (dirLightCount >= MAX_DIR_LIGHT_COUNT)
+                    case LightType.Directional:
+                    {
+                        if (dirLightCount < MAX_DIR_LIGHT_COUNT)
+                            SetupDirectionalLight(dirLightCount++, ref visibleLight);
                         break;
+                    }
+                    case LightType.Point:
+                    {
+                        if (otherLightCount < MAX_OTHER_LIGHT_COUNT)
+                            SetupPointLight(otherLightCount++, ref visibleLight);
+                        break;
+                    }
                 }
             }
             
-            _buffer.SetGlobalInt(s_Id_DirectionalLightCount, visibleLights.Length);
-            _buffer.SetGlobalVectorArray(s_Id_DirectionalLightColors, s_DirLightColors);
-            _buffer.SetGlobalVectorArray(s_Id_DirectionalLightDirections, s_DirLightDirections);
-            _buffer.SetGlobalVectorArray(s_Id_DirectionalLightShadowData, s_DirLightShadowData);
+            _buffer.SetGlobalInt(s_Id_DirectionalLightCount, dirLightCount);
+            if (dirLightCount > 0)
+            {
+                _buffer.SetGlobalVectorArray(s_Id_DirectionalLightColors, s_DirLightColors);
+                _buffer.SetGlobalVectorArray(s_Id_DirectionalLightDirections, s_DirLightDirections);
+                _buffer.SetGlobalVectorArray(s_Id_DirectionalLightShadowData, s_DirLightShadowData);
+            }
+            
+            _buffer.SetGlobalInt(s_Id_OtherLightCount, otherLightCount);
+            if (otherLightCount > 0)
+            {
+                _buffer.SetGlobalVectorArray(s_Id_OtherLightColors, s_OtherLightColors);
+                _buffer.SetGlobalVectorArray(s_Id_OtherLightPositions, s_OtherLightPositions);
+            }
         }
         
         
@@ -87,6 +119,19 @@ namespace PJRP.Runtime.Core
             _shadows.ReserveDirectionalShadows(visibleLight.light, index, out Vector4 shadowData);
             s_DirLightShadowData[index] = shadowData;
         }
+        
+        private void SetupPointLight(int index, ref VisibleLight visibleLight)
+        {
+            s_OtherLightColors[index] = visibleLight.finalColor;
+            
+            Vector4 position = visibleLight.localToWorldMatrix.GetColumn(3);
+            position.w = 1f / Mathf.Max(visibleLight.range * visibleLight.range, 0.00001f); // Range-dependent attenuation stored in 'w' component of position vector
+            s_OtherLightPositions[index] = position;
+        }
+        
+        
+        
+        
         
         public void Cleanup() 
         {
