@@ -85,6 +85,8 @@
 			#pragma multi_compile _ _SHADOW_MASK_ALWAYS _SHADOW_MASK_DISTANCE
 			#pragma multi_compile _ LIGHTMAP_ON
 			
+			#pragma multi_compile _ _LIGHTS_PER_OBJECT
+			
 			#pragma multi_compile _ LOD_FADE_CROSSFADE
 			
 			#pragma multi_compile_instancing

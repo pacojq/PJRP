@@ -12,6 +12,9 @@ CBUFFER_START(UnityPerDraw)
     float4 unity_LODFade;
     real4 unity_WorldTransformParams;
 
+    // Necessary for per-object lights
+    real4 unity_LightData;
+	real4 unity_LightIndices[2];
 
     // vv== LIGHTMAPING =================vv
 

@@ -51,7 +51,7 @@ namespace PJRP.Runtime.Core
             _buffer.BeginSample(SampleName);
             {
                 ExecuteBuffer();
-                _lighting.Setup(context, _cullingResults, rp.Shadows);
+                _lighting.Setup(context, _cullingResults, rp.Shadows, _rp.UseLightsPerObject);
             }
             _buffer.EndSample(SampleName);
             
@@ -104,6 +104,10 @@ namespace PJRP.Runtime.Core
         
         private void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing)
         {
+            PerObjectData lightsPerObjectFlags = _rp.UseLightsPerObject 
+                ? (PerObjectData.LightData | PerObjectData.LightIndices) 
+                : PerObjectData.None;
+            
             // ===== DRAW OPAQUES ================================================================
             
             SortingSettings sortingSettings = new SortingSettings(_camera);
@@ -118,6 +122,7 @@ namespace PJRP.Runtime.Core
                               | PerObjectData.OcclusionProbe
                               | PerObjectData.OcclusionProbeProxyVolume
                               | PerObjectData.ReflectionProbes
+                              | lightsPerObjectFlags
             };
             drawingSettings.SetShaderPassName(1, s_ShaderTag_Lit);
             

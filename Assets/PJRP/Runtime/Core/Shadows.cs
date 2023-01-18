@@ -358,6 +358,33 @@ namespace PJRP.Runtime.Core
             shadowData = new Vector4(0f, 0f, 0f, -1f);
         }
         
+        /// <summary>
+        /// Reserves an index for a given light, so it can be later rendered to the shadow atlas.
+        /// </summary>
+        /// <param name="light"></param>
+        /// <param name="visibleLightIndex"></param>
+        /// <param name="shadowData">Packed: shadow strength (x component), shadow tile offset (y comp.),
+        /// shadow normal bias (z comp.), and light's mask channel index (w comp.).
+        /// </param>
+        public void ReserveOtherShadows(Light light, int visibleLightIndex, out Vector4 shadowData)
+        {
+            if (light.shadows != LightShadows.None && light.shadowStrength > 0f)
+            {
+                LightBakingOutput lightBaking = light.bakingOutput;
+                if (lightBaking.lightmapBakeType == LightmapBakeType.Mixed && lightBaking.mixedLightingMode == MixedLightingMode.Shadowmask) 
+                {
+                    _useShadowMask = true;
+                    shadowData = new Vector4(light.shadowStrength, 0f, 0f, lightBaking.occlusionMaskChannel);
+                    return;
+                }
+            }
+            shadowData = new Vector4(0f, 0f, 0f, -1f);
+        }
+        
+        
+        
+        
+        
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Cleanup() 

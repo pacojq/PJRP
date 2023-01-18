@@ -5,13 +5,19 @@ using UnityEngine.Rendering;
 
 namespace PJRP.Runtime
 {
-    public class PJRenderPipeline : RenderPipeline
+    public partial class PJRenderPipeline : RenderPipeline
     {
         public bool UseDynamicBatching => _useDynamicBatching;
         private readonly bool _useDynamicBatching;
         
         public bool UseGPUInstancing => _useGPUInstancing;
         private readonly bool _useGPUInstancing;
+        
+        /// <summary>
+        /// At render time, evaluate visible lights per-object, instead of per-fragment.
+        /// </summary>
+        public bool UseLightsPerObject => _useLightsPerObject;
+        private readonly bool _useLightsPerObject;
 
         public ShadowSettings Shadows => _shadows;
         private readonly ShadowSettings _shadows;
@@ -28,9 +34,12 @@ namespace PJRP.Runtime
             
             this._useDynamicBatching = asset.UseDynamicBatching;
             this._useGPUInstancing = asset.UseGPUInstancing;
+            this._useLightsPerObject = asset.UseLightsPerObject;
             GraphicsSettings.useScriptableRenderPipelineBatching = asset.UseSRPBatcher;
 
             this._shadows = asset.Shadows;
+
+            InitializeForEditor();
         }
         
         
